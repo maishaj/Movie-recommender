@@ -4,6 +4,7 @@ import pandas as pd
 import requests
 import asyncio
 import aiohttp
+import bz2
 
 # ---------------- 1. PAGE CONFIG ----------------
 st.set_page_config(
@@ -285,22 +286,46 @@ async def fetch_all_posters(movie_ids):
 
 
 # ---------------- 4. LOAD DATA (MUST RUN BEFORE UI COMPONENTS) ----------------
+# @st.cache_data
+# def load_data():
+#     try:
+#         movies_dict = pickle.load(open('movies_dict.pkl', 'rb'))
+#         movies_df = pd.DataFrame(movies_dict)
+#         similarity_matrix = pickle.load(open('similarity.pkl', 'rb'))
+        
+#         if isinstance(similarity_matrix, pd.DataFrame):
+#             similarity_matrix = similarity_matrix.values
+            
+#         return movies_df, similarity_matrix
+#     except FileNotFoundError as e:
+#         st.error(f"Could not find required files in directory! Error details: {e}")
+#         st.stop()
+
+# # Load globally
+# movies, similarity = load_data()
+
 @st.cache_data
 def load_data():
     try:
+        # 1. Load the movies dictionary
         movies_dict = pickle.load(open('movies_dict.pkl', 'rb'))
         movies_df = pd.DataFrame(movies_dict)
-        similarity_matrix = pickle.load(open('similarity.pkl', 'rb'))
         
+        # 2. Open and decompress the similarity matrix on the fly
+        with bz2.BZ2File('similarity.pbz2', 'rb') as f:
+            similarity_matrix = pickle.load(f)
+        
+        # Safe-guarding matrix format
         if isinstance(similarity_matrix, pd.DataFrame):
             similarity_matrix = similarity_matrix.values
             
         return movies_df, similarity_matrix
+
     except FileNotFoundError as e:
         st.error(f"Could not find required files in directory! Error details: {e}")
         st.stop()
 
-# Load globally
+# CHANGE HERE: Assigned the output directly to 'movies' instead of 'movies_df'
 movies, similarity = load_data()
 
 
